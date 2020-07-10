@@ -1,52 +1,59 @@
-# Prerequisites
-*.d
-
-# Object files
 *.o
-*.ko
-*.obj
-*.elf
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
 *.a
-*.la
 *.lo
+*.la
+.deps
+Makefile
+Makefile.in
+config.h
+config.h.in
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+#configure
+aclocal.m4
+autom4te.cache/
+compile
+config.log
+config.status
+configure
+configure.lineno
+depcomp
+install-sh
+missing
+stamp-h1
 
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+# libtool
+ltmain.sh
+libtool
+.libs
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
+# git-version-gen magic
+.tarball-version
+.version
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
+# apps and app data
+src/osmo-cbc
+
+#tests
+tests/*/*_test
+
+tests/atconfig
+tests/package.m4
+tests/testsuite
+tests/testsuite.log
+
+*.pc
+config.*
+
+tags
+/Doxyfile
+
+# manuals
+doc/manuals/*.html
+doc/manuals/*.svg
+doc/manuals/*.pdf
+doc/manuals/*__*.png
+doc/manuals/*.check
+doc/manuals/generated/
+doc/manuals/osmomsc-usermanual.xml
+doc/manuals/common
+doc/manuals/build
