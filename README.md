@@ -1,2 +1,3 @@
 # rhizo-ale
-Experiments with HF trx
+
+Rhizomatica's HF Automatic Link Establishment (ALE) System

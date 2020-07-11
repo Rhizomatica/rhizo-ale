@@ -49,18 +49,18 @@
 static void *tall_ale_ctx;
 
 static const struct log_info_cat log_info_cat[] = {
-	[ALE] = {
-		.name = "ALE",
-		.description = "Rhizomatica HF ALE",
-		.color = "\033[1;31m",
-		.enabled = 1,
-		.loglevel = LOGL_NOTICE,
-	},
+    [ALE] = {
+        .name = "ALE",
+        .description = "Rhizomatica HF ALE System",
+        .color = "\033[1;31m",
+        .enabled = 1,
+        .loglevel = LOGL_NOTICE,
+    },
 };
 
 static const struct log_info log_info = {
-	.cat = log_info_cat,
-	.num_cat = ARRAY_SIZE(log_info_cat),
+    .cat = log_info_cat,
+    .num_cat = ARRAY_SIZE(log_info_cat),
 };
 
 static const char ale_copyright[] =
@@ -71,137 +71,146 @@ static const char ale_copyright[] =
         "Free Software lives by contribution.  If you use this, please contribute!\r\n";
 
 static struct vty_app_info vty_info = {
-	.name = "RhizoALE",
-	.copyright = ale_copyright,
-	.version = PACKAGE_VERSION,
+    .name = "RhizoALE",
+    .copyright = ale_copyright,
+    .version = PACKAGE_VERSION,
 };
 
 static struct {
-	bool daemonize;
-	const char *config_file;
+    bool daemonize;
+    const char *config_file;
+    int vty_port;
 } cmdline_config = {
-	.daemonize = false,
-	.config_file = "rhizo-ale.cfg",
+    .daemonize = false,
+    .config_file = "rhizo-ale.cfg",
+    .vty_port = RHIZO_VTY_PORT_ALE,
 };
 
 static void print_help(void)
 {
-	printf( "Options:\n"
-		"  -h	--help		This text\n"
-		"  -c	--config-file 	Specify the filename of the config "
-			"file\n"
-		"  -D	--daemonize	Fork the process into a background "
-			"daemon\n"
-		"  -V	--version	Show current version\n"
-		);
+    printf( "Options:\n"
+            "  -h	--help		This text\n"
+            "  -c	--config-file 	Specify the filename of the config "
+            "file\n"
+            "  -v	--vty-port 	Specify the vty port (Default: %d) "
+            "\n"
+            "  -D	--daemonize	Fork the process into a background "
+            "daemon\n"
+            "  -V	--version	Show current version\n", RHIZO_VTY_PORT_ALE
+        );
 }
 
 static void handle_options(int argc, char **argv)
 {
-	while (1) {
-		int option_index = 0, c;
-		static const struct option long_options[] = {
-			{ "help", 0, 0, 'h' },
-			{ "daemonize", 0, 0, 'D' },
-			{ "config-file", 1, 0, 'c' },
-			{ "version", 0, 0, 'V' },
-			{ NULL, 0, 0, 0 }
-		};
+    while (1) {
+        int option_index = 0, c;
+        static const struct option long_options[] = {
+            { "help", 0, 0, 'h' },
+            { "daemonize", 0, 0, 'D' },
+            { "config-file", 1, 0, 'c' },
+            { "vty-port", 1, 0, 'v' },
+            { "version", 0, 0, 'V' },
+            { NULL, 0, 0, 0 }
+        };
 
-		c = getopt_long(argc, argv, "hDc:V", long_options, &option_index);
-		if (c == -1)
-			break;
+        c = getopt_long(argc, argv, "hDc:v:V", long_options, &option_index);
+        if (c == -1)
+            break;
 
-		switch (c) {
-		case 'h':
-			print_help();
-			exit(0);
-			break;
-		case 'D':
-			cmdline_config.daemonize = true;
-			break;
-		case 'c':
-			cmdline_config.config_file = optarg;
-			break;
-		case 'V':
-			print_version(1);
-			exit(0);
-			break;
-		default:
-			fprintf(stderr, "Error in command line options. Exiting\n");
-			exit(1);
-			break;
-		}
-	}
+        switch (c) {
+        case 'h':
+            print_help();
+            exit(0);
+            break;
+        case 'D':
+            cmdline_config.daemonize = true;
+            break;
+        case 'c':
+            cmdline_config.config_file = optarg;
+            break;
+        case 'v':
+            cmdline_config.vty_port = atoi(optarg);
+            break;
+        case 'V':
+            print_version(1);
+            exit(0);
+            break;
+        default:
+            fprintf(stderr, "Error in command line options. Exiting\n");
+            exit(1);
+            break;
+        }
+    }
 
-	if (argc > optind) {
-		fprintf(stderr, "Unsupported positional arguments on command line\n");
-		exit(2);
-	}
+    if (argc > optind) {
+        fprintf(stderr, "Unsupported positional arguments on command line\n");
+        exit(2);
+    }
 }
 
 static void signal_handler(int signal)
 {
-	fprintf(stdout, "signal %d received\n", signal);
+    fprintf(stdout, "signal %d received\n", signal);
 
-	switch (signal){
-	case SIGUSR1:
-		talloc_report(tall_vty_ctx, stderr);
-		talloc_report_full(tall_ale_ctx, stderr);
-		break;
-	case SIGUSR2:
-		talloc_report_full(tall_vty_ctx, stderr);
-		break;
-	default:
-		break;
-	}
+    switch (signal){
+    case SIGUSR1:
+        talloc_report(tall_vty_ctx, stderr);
+        talloc_report_full(tall_ale_ctx, stderr);
+        break;
+    case SIGUSR2:
+        talloc_report_full(tall_vty_ctx, stderr);
+        break;
+    default:
+        break;
+    }
 }
 
 int main(int argc, char **argv)
 {
-	int rc;
+    int rc;
 
-	tall_ale_ctx = talloc_named_const(NULL, 1, "rhizo-ale");
-	msgb_talloc_ctx_init(tall_ale_ctx, 0);
-	osmo_init_logging2(tall_ale_ctx, &log_info);
-	osmo_stats_init(tall_ale_ctx);
-	vty_init(&vty_info);
+    tall_ale_ctx = talloc_named_const(NULL, 1, "rhizo-ale");
+    msgb_talloc_ctx_init(tall_ale_ctx, 0);
+    osmo_init_logging2(tall_ale_ctx, &log_info);
+    log_enable_multithread();
+    osmo_stats_init(tall_ale_ctx);
+    vty_init(&vty_info);
 
-	ale_vty_init();
+    ale_vty_init();
 
-	handle_options(argc, argv);
+    handle_options(argc, argv);
 
-	logging_vty_add_cmds();
-	osmo_fsm_vty_add_cmds();
+    logging_vty_add_cmds();
+    osmo_fsm_vty_add_cmds();
 
-	rc = vty_read_config_file(cmdline_config.config_file, NULL);
-	if (rc < 0) {
-		fprintf(stderr, "Failed ot parse the config file '%s'\n",
-			cmdline_config.config_file);
-		exit(1);
-	}
+    rc = vty_read_config_file(cmdline_config.config_file, NULL);
+    if (rc < 0) {
+        fprintf(stderr, "Failed ot parse the config file '%s'\n",
+                cmdline_config.config_file);
+        exit(1);
+    }
 
-	rc = telnet_init_dynif(tall_ale_ctx, NULL, vty_get_bind_addr(), RHIZO_VTY_PORT_ALE);
-	if (rc < 0) {
-		perror("Error binding VTY port\n");
-		exit(1);
-	}
+    rc = telnet_init_dynif(tall_ale_ctx, NULL, vty_get_bind_addr(), cmdline_config.vty_port);
+    if (rc < 0) {
+        perror("Error binding VTY port\n");
+        exit(1);
+    }
 
-	signal(SIGUSR1, &signal_handler);
-	signal(SIGUSR2, &signal_handler);
-	osmo_init_ignore_signals();
+    signal(SIGUSR1, &signal_handler);
+    signal(SIGUSR2, &signal_handler);
+    osmo_init_ignore_signals();
 
-	if (cmdline_config.daemonize) {
-		rc = osmo_daemonize();
-		if (rc < 0) {
-			perror("Error during daemonize");
-			exit(1);
-		}
-	}
+    if (cmdline_config.daemonize) {
+        rc = osmo_daemonize();
+        if (rc < 0) {
+            perror("Error during daemonize");
+            exit(1);
+        }
+    }
 
-	while (1) {
-		rc = osmo_select_main(0);
-		if (rc < 0)
-			exit(3);
-	}
+    while (1) {
+        rc = osmo_select_main(0);
+        if (rc < 0)
+            exit(3);
+    }
 }
