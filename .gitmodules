@@ -1,6 +1,0 @@
-[submodule "codec2"]
-	path = codec2
-	url = https://github.com/drowe67/codec2/
-[submodule "ubitxv6"]
-	path = ubitxv6
-	url = https://github.com/DigitalHERMES/ubitxv6.git
