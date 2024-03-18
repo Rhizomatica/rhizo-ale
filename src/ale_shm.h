@@ -20,6 +20,17 @@
  *
  */
 
+/**
+ * @file ale_shm.h
+ * @author Rafael Diniz
+ * @date 14 Aug 2020
+ * @brief Shared memory routines
+ *
+ * Shared memory routines
+ *
+ */
+
+
 #pragma once
 
 #include <stdio.h>

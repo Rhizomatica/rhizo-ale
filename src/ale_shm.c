@@ -20,6 +20,17 @@
  *
  */
 
+/**
+ * @file ale_shm.c
+ * @author Rafael Diniz
+ * @date 14 Aug 2020
+ * @brief Shared memory routines
+ *
+ * Shared memory routines
+ *
+ */
+
+
 #include "ale_shm.h"
 
 bool shm_is_created(key_t key, size_t size)

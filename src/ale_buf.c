@@ -37,23 +37,6 @@
 #include "ale_buf.h"
 #include "ale_shm.h"
 
-// The definition of our circular buffer structure is hidden from the user
-struct circular_buf_t_aux {
-    size_t head;
-    size_t tail;
-    size_t max; //of the buffer
-    bool full;
-    atomic_flag acquire;
-//    mtx_t buf_lock;
-//    cnd_t buf_cond;
-};
-
-struct circular_buf_t {
-    struct circular_buf_t_aux *internal;
-    uint8_t *buffer;
-};
-
-
 // Private functions
 
 static void advance_pointer_n(cbuf_handle_t cbuf, size_t len)
@@ -144,15 +127,14 @@ cbuf_handle_t circular_buf_init_shm(size_t size, key_t key)
     assert(cbuf->buffer);
 
     key++;
-    size = sizeof(struct circular_buf_t_aux);
-    if (shm_is_created(key, size))
+    if (shm_is_created(key, sizeof(struct circular_buf_t_aux)))
     {
         fprintf(stderr, "shm key %u already created. Re-creating.\n", key);
-        shm_destroy(key, size);
+        shm_destroy(key, sizeof(struct circular_buf_t_aux));
     }
-    shm_create(key, size);
+    shm_create(key, sizeof(struct circular_buf_t_aux));
 
-    cbuf->internal = shm_attach(key, size);
+    cbuf->internal = shm_attach(key, sizeof(struct circular_buf_t_aux));
     assert(cbuf->internal);
 
     cbuf->internal->max = size;
@@ -279,19 +261,7 @@ size_t circular_buf_capacity(cbuf_handle_t cbuf)
     return capacity;
 }
 
-void circular_buf_put(cbuf_handle_t cbuf, uint8_t data)
-{
-    assert(cbuf && cbuf->internal && cbuf->buffer);
-
-    while (atomic_flag_test_and_set(&cbuf->internal->acquire));
-
-    cbuf->buffer[cbuf->internal->head] = data;
-    advance_pointer(cbuf);
-
-    atomic_flag_clear(&cbuf->internal->acquire);
-}
-
-int circular_buf_put2(cbuf_handle_t cbuf, uint8_t data)
+int circular_buf_put(cbuf_handle_t cbuf, uint8_t data)
 {
     assert(cbuf && cbuf->internal && cbuf->buffer);
 
@@ -362,13 +332,6 @@ int circular_buf_get_range(cbuf_handle_t cbuf, uint8_t *data, size_t len)
 {
     assert(cbuf && data && cbuf->internal && cbuf->buffer);
 
-#if 0
-    for (int i = 0; i < len; i++)
-        circular_buf_get(cbuf, &data[i]);
-
-    return 0;
-#endif
-
     int r = -1;
     size_t size = circular_buf_capacity(cbuf);
 
@@ -379,11 +342,13 @@ int circular_buf_get_range(cbuf_handle_t cbuf, uint8_t *data, size_t len)
         if ( ((cbuf->internal->tail + len) % size) > cbuf->internal->tail)
         {
             memcpy(data, cbuf->buffer + cbuf->internal->tail, len);
-        }else
+        }
+        else
         {
             memcpy(data, cbuf->buffer + cbuf->internal->tail, size - cbuf->internal->tail);
             memcpy(data + (size - cbuf->internal->tail), cbuf->buffer, len - (size - cbuf->internal->tail));
         }
+
         retreat_pointer_n(cbuf, len);
 
         atomic_flag_clear(&cbuf->internal->acquire);
@@ -392,43 +357,35 @@ int circular_buf_get_range(cbuf_handle_t cbuf, uint8_t *data, size_t len)
     }
 
     return r;
-
 }
 
 int circular_buf_put_range(cbuf_handle_t cbuf, uint8_t * data, size_t len)
 {
     assert(cbuf && cbuf->internal && cbuf->buffer);
 
-#if 0
-    for (int i = 0; i < len; i++)
-        circular_buf_put(cbuf, data[i]);
-
-    return 0;
-#endif
-
     int r = -1;
     size_t size = circular_buf_capacity(cbuf);
-
-    // test if buffer has enough free space
 
     if(!circular_buf_full(cbuf))
     {
         while (atomic_flag_test_and_set(&cbuf->internal->acquire));
+
         if ( ((cbuf->internal->head + len) % size) > cbuf->internal->head)
         {
             memcpy(cbuf->buffer + cbuf->internal->head, data, len);
-        } else
+        }
+        else
         {
             memcpy(cbuf->buffer + cbuf->internal->head, data, size - cbuf->internal->head);
             memcpy(cbuf->buffer, data + (size - cbuf->internal->head), len - (size - cbuf->internal->head));
         }
 
         advance_pointer_n(cbuf, len);
+
         atomic_flag_clear(&cbuf->internal->acquire);
+
         r = 0;
     }
 
     return r;
-
-
 }
