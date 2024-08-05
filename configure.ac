@@ -1,7 +1,5 @@
 dnl Process this file with autoconf to produce a configure script
-AC_INIT([rhizo-ale],
-	[0.1],
-	[rafael@rhizomatica.org])
+AC_INIT([rhizo-ale],[0.1],[rafael@rhizomatica.org])
 
 dnl *This* is the root dir, even if an install-sh exists in ../ or ../../
 AC_CONFIG_AUX_DIR([.])
@@ -98,8 +96,7 @@ AS_IF([test "x$with_systemdsystemunitdir" != "xno"],
 AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_systemdsystemunitdir" != "xno"])
 
 AC_ARG_ENABLE([external_tests],
-		AC_HELP_STRING([--enable-external-tests],
-				[Include the VTY/CTRL tests in make check [default=no]]),
+		AS_HELP_STRING([--enable-external-tests],[Include the VTY/CTRL tests in make check [default=no]]),
 		[enable_ext_tests="$enableval"],[enable_ext_tests="no"])
 if test "x$enable_ext_tests" = "xyes" ; then
 	AM_PATH_PYTHON
@@ -115,9 +112,6 @@ AM_CONDITIONAL(ENABLE_EXT_TESTS, test "x$enable_ext_tests" = "xyes")
 AC_MSG_RESULT([CFLAGS="$CFLAGS"])
 AC_MSG_RESULT([CPPFLAGS="$CPPFLAGS"])
 
-AC_OUTPUT(
-    src/Makefile
-dnl    contrib/Makefile
-dnl    tests/Makefile
-dnl    contrib/systemd/Makefile
-    Makefile)
+AC_CONFIG_FILES([src/Makefile
+    Makefile])
+AC_OUTPUT
